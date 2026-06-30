@@ -286,6 +286,8 @@ function updateFootsteps(dt) {
 }
 
 
+// Update the self-avatar to follow the player, and position the corner camera.
+let _lastSelfPos = new THREE.Vector3();
 const _lookDir = new THREE.Vector3();
 function updateCornerView(dt) {
   if (!selfAvatar || !selfAvatar.ready) return;
