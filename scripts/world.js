@@ -16,7 +16,7 @@ export class World extends THREE.Group {
   * the adjacent chunks are rendered; if set to 2, the
   * chunks adjacent to those are rendered, and so on.
   */
-  drawDistance = 3;
+  drawDistance = 2;
 
   chunkSize = {
     width: 32,
@@ -231,7 +231,7 @@ export class World extends THREE.Group {
     for (const chunk of chunksToRemove) {
       chunk.disposeInstances();
       this.remove(chunk);
-      console.log(`Removing chunk at X: ${chunk.userData.x} Z: ${chunk.userData.z}`);
+      // (removed per-chunk logging for performance)
     }
   }
 
@@ -255,7 +255,7 @@ export class World extends THREE.Group {
     }
 
     this.add(chunk);
-    console.log(`Adding chunk at X: ${x} Z: ${z}`);
+    // (removed per-chunk logging for performance)
   }
 
   /**
