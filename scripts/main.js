@@ -250,8 +250,9 @@ document.getElementById('btn-play').addEventListener('click', async () => {
     }
     setupMultiplayerHost(false); // hide singleplayer host button in MP
 
-    // If we CREATED the room (not joined via link), show the share screen first.
-    if (amCreator && !roomExistsInUrl()) {
+    // If we CREATED the room (we're the host), show the share screen first.
+    // Joiners (who read an existing seed) are not host, so they skip it.
+    if (amCreator) {
       showShareScreen();
       return; // wait for "Start Playing"
     }
