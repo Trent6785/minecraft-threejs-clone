@@ -82,6 +82,17 @@ export class World extends THREE.Group {
   }
 
   /**
+   * Regenerates the world using a specific seed (used for shared multiplayer
+   * worlds and loading hosted snapshots).
+   * @param {number} seed
+   */
+  setSeed(seed) {
+    this.params.seed = seed;
+    this.seed = seed;
+    this.generate(true);
+  }
+
+  /**
    * Saves the world data to local storage
    */
   save() {

@@ -144,6 +144,94 @@ h1 .ai {
   margin-left: 4px;
 }
 
+/* Fullscreen menus (mode select, avatar select) */
+.fullscreen-menu {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  background: radial-gradient(ellipse at center, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.82) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-family: 'Minecraft', sans-serif;
+  text-align: center;
+}
+
+.menu-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  padding: 24px;
+}
+
+.menu-buttons {
+  display: flex;
+  gap: 20px;
+  margin-top: 10px;
+}
+
+.menu-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 18px 28px;
+  min-width: 200px;
+  background: rgba(120,120,120,0.85);
+  border: 3px solid #5a5a5a;
+  border-bottom-width: 5px;
+  color: #fff;
+  font-family: 'Minecraft', sans-serif;
+  cursor: pointer;
+  transition: background 0.12s, transform 0.05s;
+}
+
+.menu-btn:hover { background: rgba(150,150,150,0.95); }
+.menu-btn:active { transform: translateY(2px); border-bottom-width: 3px; }
+
+.menu-btn-title { font-size: 22px; }
+.menu-btn-sub { font-size: 12px; color: #e0e0e0; }
+
+.avatar-title { font-size: 1.6em; margin: 0; }
+
+/* Host button (top-left, singleplayer) */
+#host-btn {
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  z-index: 1500;
+  padding: 8px 14px;
+  background: rgba(120,120,120,0.85);
+  border: 2px solid #5a5a5a;
+  border-bottom-width: 4px;
+  color: #fff;
+  font-family: 'Minecraft', sans-serif;
+  font-size: 14px;
+  cursor: pointer;
+}
+#host-btn:hover { background: rgba(150,150,150,0.95); }
+#host-btn:active { transform: translateY(2px); border-bottom-width: 2px; }
+
+/* Share popup */
+#share-popup {
+  position: fixed;
+  top: 52px;
+  left: 12px;
+  z-index: 1500;
+  max-width: 380px;
+  padding: 12px 14px;
+  background: rgba(0,0,0,0.85);
+  border: 2px solid #7cbd56;
+  color: #fff;
+  font-family: 'Minecraft', sans-serif;
+  font-size: 13px;
+  line-height: 1.5;
+  word-break: break-all;
+}
+#share-popup a { color: #9fe07a; }
+
 /* Avatar picker on the start screen */
 .avatar-picker {
   display: flex;

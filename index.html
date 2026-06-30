@@ -27,15 +27,26 @@
       <img class="toolbar-icon selected" id="toolbar-0" src="textures/pickaxe.png"></img>
     </div>
   </div>
-  <div id="overlay">
-    <div id="instructions">
+  <div id="mode-menu" class="fullscreen-menu">
+    <div class="menu-inner">
       <h1>MINECRAFT<span class="ai">AI</span></h1>
       <p class="tagline">Explore a world you can build with AI</p>
-
-      <div class="ai-callout">
-        Press <span class="key">B</span> and describe anything &mdash; the AI builds it
+      <div class="menu-buttons">
+        <button class="menu-btn" id="btn-singleplayer">
+          <span class="menu-btn-title">Singleplayer</span>
+          <span class="menu-btn-sub">Play solo in your own world</span>
+        </button>
+        <button class="menu-btn" id="btn-multiplayer">
+          <span class="menu-btn-title">Multiplayer</span>
+          <span class="menu-btn-sub">Create a room &amp; build with friends</span>
+        </button>
       </div>
+    </div>
+  </div>
 
+  <div id="avatar-menu" class="fullscreen-menu" style="display:none;">
+    <div class="menu-inner">
+      <h2 class="avatar-title">Choose your character</h2>
       <div class="avatar-picker">
         <div class="avatar-card selected" data-avatar="steve">
           <img src="textures/steve_preview.png" alt="Steve" />
@@ -45,6 +56,18 @@
           <img src="textures/alex_preview.png" alt="Alex" />
           <span>Alex</span>
         </div>
+      </div>
+      <button class="menu-btn" id="btn-play"><span class="menu-btn-title">Play</span></button>
+    </div>
+  </div>
+
+  <div id="overlay" style="visibility:hidden;">
+    <div id="instructions">
+      <h1>MINECRAFT<span class="ai">AI</span></h1>
+      <p class="tagline">Explore a world you can build with AI</p>
+
+      <div class="ai-callout">
+        Press <span class="key">B</span> and describe anything &mdash; the AI builds it
       </div>
 
       <div class="controls">
@@ -70,6 +93,8 @@
     </div>
   </div>
   <div id="status"></div>
+  <button id="host-btn" style="display:none;">Host (Share Read-Only)</button>
+  <div id="share-popup" style="display:none;"></div>
   <script type="module" src="./scripts/main.js"></script>
 </body>
 

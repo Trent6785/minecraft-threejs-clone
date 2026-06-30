@@ -7,7 +7,7 @@ import { Physics } from './physics';
 import { setupUI } from './ui';
 import { ModelLoader } from './modelLoader';
 import { Avatar } from './avatar';
-import { initMultiplayer, updateMultiplayer, chooseAvatar } from './multiplayer';
+import { initMultiplayer, updateMultiplayer, chooseAvatar, resolveSharedSeed, roomExistsInUrl, roomCode } from './multiplayer';
 
 // UI Setup
 const stats = new Stats();
@@ -188,27 +188,105 @@ window.addEventListener('resize', () => {
 setupUI(world, player, physics, scene);
 setupLights();
 
-// ---- Avatar picker + deferred multiplayer join ----
-// The player picks Steve or Alex on the start screen, then joins the room when
-// they start playing (first time controls lock).
+// ============================================================
+// ---- Mode menu flow: Singleplayer / Multiplayer + avatar ----
+// ============================================================
+let gameMode = 'singleplayer';   // 'singleplayer' | 'multiplayer'
+let mpJoined = false;
+
+const modeMenu = document.getElementById('mode-menu');
+const avatarMenu = document.getElementById('avatar-menu');
+
+// Avatar card selection (on the avatar screen).
 const avatarCards = document.querySelectorAll('.avatar-card');
 avatarCards.forEach((card) => {
-  card.addEventListener('click', (e) => {
-    e.stopPropagation();
+  card.addEventListener('click', () => {
     avatarCards.forEach((c) => c.classList.remove('selected'));
     card.classList.add('selected');
     chooseAvatar(card.dataset.avatar);
   });
 });
 
-// Join the room the first time the player enters the world.
-let mpJoined = false;
+function showAvatarScreen() {
+  modeMenu.style.display = 'none';
+  avatarMenu.style.display = 'flex';
+}
+
+// If the URL already has a ?room= code, this is someone joining a shared
+// world — skip the mode menu and go straight to the avatar screen in MP mode.
+if (roomExistsInUrl()) {
+  gameMode = 'multiplayer';
+  showAvatarScreen();
+} else {
+  document.getElementById('btn-singleplayer').addEventListener('click', () => {
+    gameMode = 'singleplayer';
+    showAvatarScreen();
+  });
+  document.getElementById('btn-multiplayer').addEventListener('click', () => {
+    gameMode = 'multiplayer';
+    // Put the room code in the URL so it's shareable.
+    const url = new URL(window.location.href);
+    url.searchParams.set('room', roomCode);
+    window.history.replaceState({}, '', url);
+    showAvatarScreen();
+  });
+}
+
+// "Play" button on the avatar screen — start the chosen mode.
+document.getElementById('btn-play').addEventListener('click', async () => {
+  avatarMenu.style.display = 'none';
+
+  if (gameMode === 'multiplayer') {
+    // Shared seed: first player sets it, others read it. Regenerate world to match.
+    try {
+      const seed = await resolveSharedSeed(world.params.seed);
+      if (seed !== world.params.seed) {
+        world.setSeed(seed);
+      }
+    } catch (err) {
+      console.error('[mp] seed resolve failed, using local seed:', err);
+    }
+    setupMultiplayerHost(false); // hide host button in MP
+  } else {
+    // Singleplayer: stays fully offline. Show the Host button.
+    setupMultiplayerHost(true);
+  }
+
+  // Reveal the in-game start overlay ("press any key to start").
+  document.getElementById('overlay').style.visibility = 'visible';
+});
+
+// Join the multiplayer room the first time the player locks in (starts playing).
 player.controls.addEventListener('lock', () => {
-  if (!mpJoined) {
+  if (gameMode === 'multiplayer' && !mpJoined) {
     mpJoined = true;
     initMultiplayer(scene, world, player);
   }
 });
+
+// Host button (singleplayer read-only sharing) is wired in setupHostButton().
+function setupMultiplayerHost(showHost) {
+  const hostBtn = document.getElementById('host-btn');
+  if (showHost) {
+    hostBtn.style.display = 'block';
+    setupHostButton();
+  } else {
+    hostBtn.style.display = 'none';
+  }
+}
+
+// Placeholder — full read-only hosting is Stage 3.
+let hostWired = false;
+function setupHostButton() {
+  if (hostWired) return;
+  hostWired = true;
+  const hostBtn = document.getElementById('host-btn');
+  hostBtn.addEventListener('click', () => {
+    const popup = document.getElementById('share-popup');
+    popup.style.display = 'block';
+    popup.innerHTML = 'Read-only hosting coming soon (Stage 3).';
+  });
+}
 
 animate();
 
