@@ -286,18 +286,18 @@ h1 .ai {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
-  padding: 10px;
+  gap: 10px;
+  padding: 18px 24px;
   background: rgba(255, 255, 255, 0.06);
   border: 3px solid rgba(255, 255, 255, 0.25);
   cursor: pointer;
-  font-size: 0.45em;
+  font-size: 20px;
   transition: border-color 0.15s, background 0.15s;
 }
 
 .avatar-card img {
-  width: 90px;
-  height: 90px;
+  width: 150px;
+  height: 200px;
   object-fit: contain;
   image-rendering: pixelated;
 }
