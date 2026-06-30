@@ -15,6 +15,13 @@ export class Player {
   onGround = false;
   readOnly = false;   // spectator mode: can't place/break blocks
 
+  // --- Fly / creative mode ---
+  flying = false;
+  flySpeed = 12;
+  #lastSpaceTap = 0;
+  movingUp = false;
+  movingDown = false;
+
   input = new THREE.Vector3();
   velocity = new THREE.Vector3();
   #worldVelocity = new THREE.Vector3();
@@ -150,11 +157,25 @@ export class Player {
    */
   applyInputs(dt) {
     if (this.controls.isLocked === true) {
-      this.velocity.x = this.input.x * (this.sprinting ? 1.5 : 1);
-      this.velocity.z = this.input.z * (this.sprinting ? 1.5 : 1);
-      this.controls.moveRight(this.velocity.x * dt);
-      this.controls.moveForward(this.velocity.z * dt);
-      this.position.y += this.velocity.y * dt;
+      if (this.flying) {
+        const fly = this.flySpeed / this.maxSpeed;
+        this.velocity.x = this.input.x * fly;
+        this.velocity.z = this.input.z * fly;
+        this.controls.moveRight(this.velocity.x * dt);
+        this.controls.moveForward(this.velocity.z * dt);
+
+        let vy = 0;
+        if (this.movingUp) vy += this.flySpeed;
+        if (this.movingDown) vy -= this.flySpeed;
+        this.position.y += vy * dt;
+        this.velocity.y = 0;
+      } else {
+        this.velocity.x = this.input.x * (this.sprinting ? 1.5 : 1);
+        this.velocity.z = this.input.z * (this.sprinting ? 1.5 : 1);
+        this.controls.moveRight(this.velocity.x * dt);
+        this.controls.moveForward(this.velocity.z * dt);
+        this.position.y += this.velocity.y * dt;
+      }
 
       if (this.position.y < 0) {
         this.position.y = 0;
@@ -276,12 +297,30 @@ export class Player {
       case 'ShiftLeft':
       case 'ShiftRight':
         this.sprinting = true;
+        if (this.flying) this.movingDown = true;
         break;
-      case 'Space':
-        if (this.onGround) {
-          this.velocity.y += this.jumpSpeed;
+      case 'Space': {
+        if (event.repeat) {
+          if (this.flying) this.movingUp = true;
+          break;
+        }
+        const now = performance.now();
+        if (now - this.#lastSpaceTap < 300) {
+          this.flying = !this.flying;
+          this.velocity.set(0, 0, 0);
+          this.movingUp = false;
+          this.movingDown = false;
+          this.#lastSpaceTap = 0;
+        } else {
+          this.#lastSpaceTap = now;
+          if (this.flying) {
+            this.movingUp = true;
+          } else if (this.onGround) {
+            this.velocity.y += this.jumpSpeed;
+          }
         }
         break;
+      }
       case 'F10':
         this.debugCamera = true;
         this.controls.unlock();
@@ -307,9 +346,13 @@ export class Player {
       case 'KeyD':
         this.input.x = 0;
         break;
+      case 'Space':
+        this.movingUp = false;
+        break;
       case 'ShiftLeft':
       case 'ShiftRight':
         this.sprinting = false;
+        this.movingDown = false;
         break;
     }
   }
