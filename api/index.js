@@ -54,6 +54,7 @@ BLOCK PALETTE (use these exact strings)
 - melon: green-striped melon block with red interior on top. Farms, jungle builds, food displays.
 - cobblestone: rough gray cobbles. Paths, rustic walls, castle foundations, dungeon-style builds.
 - air: SPECIAL — deletes the block at that position. Use only when editing/removing.
+- oak_door: a real openable door, 2 blocks tall. Place it in a doorway as the ENTRANCE. Give it a "facing" field ("north"/"south"/"east"/"west") pointing OUT of the building toward where someone approaches (usually "south", the front). Place ONE oak_door entry at the bottom cell of the doorway (y=1); it automatically fills y=1 and y=2. Example: {"x":0,"y":1,"z":2,"block":"oak_door","facing":"south"}. Use a door instead of leaving an empty gap when the build is a house, cottage, castle, tower, or any enclosed building with an entrance.
 
 COLOR PALETTE (for colorful builds, pixel art, flags, decoration)
 You can build in any color. Use these solid concrete colors:
@@ -179,11 +180,19 @@ export default {
 
       // Build output. blockId === 0 means "delete" (air).
       let out = [];
+      let doors = [];           // separate list of doors {x,y,z,facing}
       const seen = new Set();
       for (const b of (parsed.blocks || [])) {
         if (typeof b.x !== 'number' || typeof b.y !== 'number' || typeof b.z !== 'number') continue;
         const x = Math.round(b.x), y = Math.round(b.y), z = Math.round(b.z);
         if (y < 1) continue;
+
+        // Doors are special — not normal cube blocks. The AI uses "oak_door".
+        if (b.block === 'oak_door' || b.block === 'door') {
+          const facing = ['north', 'south', 'east', 'west'].includes(b.facing) ? b.facing : 'south';
+          doors.push({ x, y, z, facing });
+          continue;
+        }
 
         let blockId;
         if (b.block === 'air') {
@@ -206,7 +215,7 @@ export default {
         out = ensureDoorway(out);
       }
 
-      return json({ blocks: out });
+      return json({ blocks: out, doors });
     } catch (err) {
       return json({ error: 'Worker error', detail: String(err) }, 500);
     }

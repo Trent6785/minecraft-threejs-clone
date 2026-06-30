@@ -36,6 +36,7 @@ let seedRef = null;
 let hostRef = null;
 let roomRef = null;
 let editsRef = null;
+let doorsRef = null;
 
 function buildRefs() {
   playerRef = ref(db, `rooms/${roomCode}/players/${playerId}`);
@@ -44,6 +45,7 @@ function buildRefs() {
   hostRef = ref(db, `rooms/${roomCode}/host`);
   roomRef = ref(db, `rooms/${roomCode}`);
   editsRef = ref(db, `rooms/${roomCode}/edits`);
+  doorsRef = ref(db, `rooms/${roomCode}/doors`);
 }
 
 export let isHost = false;
@@ -135,6 +137,47 @@ export function getViewCode() {
   return params.get('view');
 }
 
+// ---- Door sync ----
+// Hook the game sets to apply remote door placements/toggles.
+let onRemoteDoor = null;
+export function setOnRemoteDoor(cb) { onRemoteDoor = cb; }
+
+let _applyingRemoteDoor = false;
+
+/** Broadcast a door placement to the room. */
+export function syncDoorPlace(x, y, z, facing, hinge) {
+  if (!doorsRef || _applyingRemoteDoor) return;
+  const k = `${x}_${y}_${z}`;
+  set(ref(db, `rooms/${roomCode}/doors/${k}`), { x, y, z, facing, hinge, open: false });
+}
+
+/** Broadcast a door's open/closed state change. */
+export function syncDoorState(x, y, z, open) {
+  if (!doorsRef || _applyingRemoteDoor) return;
+  const k = `${x}_${y}_${z}`;
+  update(ref(db, `rooms/${roomCode}/doors/${k}`), { open });
+}
+
+// Called from initMultiplayer to start listening for door changes.
+function listenForDoors() {
+  // Existing + new door placements.
+  onChildAdded(doorsRef, (snap) => {
+    const d = snap.val();
+    if (!d || !onRemoteDoor) return;
+    _applyingRemoteDoor = true;
+    onRemoteDoor('place', d);
+    _applyingRemoteDoor = false;
+  });
+  // Door state changes (open/close).
+  onChildChanged(doorsRef, (snap) => {
+    const d = snap.val();
+    if (!d || !onRemoteDoor) return;
+    _applyingRemoteDoor = true;
+    onRemoteDoor('state', d);
+    _applyingRemoteDoor = false;
+  });
+}
+
 const remotePlayers = new Map();
 
 let _scene = null;
@@ -216,6 +259,9 @@ export function initMultiplayer(scene, world, localPlayer) {
     if (!e) return;
     _world.applyRemoteEdit(e.x, e.y, e.z, e.b);
   });
+
+  // Listen for door placements and open/close state across the room.
+  listenForDoors();
 
   // --- Detect the room being closed (host force-close, or it vanishing) ---
   onValue(seedRef, (snap) => {

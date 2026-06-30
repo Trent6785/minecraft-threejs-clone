@@ -7,7 +7,7 @@ import { Physics } from './physics';
 import { setupUI } from './ui';
 import { ModelLoader } from './modelLoader';
 import { Avatar } from './avatar';
-import { initMultiplayer, updateMultiplayer, chooseAvatar, resolveSharedSeed, roomExistsInUrl, roomCode, isHost, closeRoom, setOnRoomClosed, hostWorld, loadHostedWorld, getViewCode, getMyHostCode } from './multiplayer';
+import { initMultiplayer, updateMultiplayer, chooseAvatar, resolveSharedSeed, roomExistsInUrl, roomCode, isHost, closeRoom, setOnRoomClosed, hostWorld, loadHostedWorld, getViewCode, getMyHostCode, syncDoorPlace, syncDoorState, setOnRemoteDoor } from './multiplayer';
 import { sounds } from './sounds';
 import { DoorManager } from './doors';
 
@@ -222,22 +222,29 @@ window.addEventListener('resize', () => {
 setupUI(world, player, physics, scene);
 setupLights();
 
-// ---- Doors (Stage 1: render test) ----
+// ---- Doors ----
 const doorManager = new DoorManager(scene);
 physics.doorManager = doorManager; // so closed doors block movement
-// Drop a test door near spawn once chunks exist, to confirm it renders.
-setTimeout(() => {
-  // Find ground near spawn and place a door standing on it.
-  const dx = Math.round(player.position.x);
-  const dz = Math.round(player.position.z) + 3;
-  let groundY = 12;
-  for (let y = 40; y >= 0; y--) {
-    const b = world.getBlock(dx, y, dz);
-    if (b && b.id !== 0) { groundY = y + 1; break; }
+
+// Place a door locally and (optionally) broadcast it.
+function placeDoor(x, y, z, facing = 'south', hinge = 'left', broadcast = true) {
+  doorManager.addDoor(x, y, z, facing, hinge);
+  if (broadcast) syncDoorPlace(x, y, z, facing, hinge);
+}
+
+// Apply door changes coming from other players.
+setOnRemoteDoor((kind, d) => {
+  if (kind === 'place') {
+    doorManager.addDoor(d.x, d.y, d.z, d.facing || 'south', d.hinge || 'left');
+    if (d.open) {
+      const door = doorManager.doorAt(d.x, d.y, d.z);
+      if (door && !door.open) doorManager.toggle(door);
+    }
+  } else if (kind === 'state') {
+    const door = doorManager.doorAt(d.x, d.y, d.z);
+    if (door && door.open !== d.open) doorManager.toggle(door);
   }
-  doorManager.addDoor(dx, groundY, dz, 'south', 'left');
-  console.log(`[door] test door placed at ${dx},${groundY},${dz}`);
-}, 1200);
+});
 
 // Right-click toggles a door you're looking at (within reach).
 const _doorRaycaster = new THREE.Raycaster();
@@ -256,7 +263,9 @@ window.addEventListener('mousedown', (e) => {
     const door = doorManager.doorForMesh(hits[0].object);
     if (door) {
       doorManager.toggle(door);
-      sounds.play(door.open ? 'place' : 'break', 0.4); // reuse a sound for now
+      sounds.play(door.open ? 'place' : 'break', 0.4);
+      // Sync the new open/closed state to other players.
+      syncDoorState(door.x, door.y, door.z, door.open);
     }
   }
 });
@@ -661,8 +670,9 @@ function scanExisting() {
 // Places a blueprint. `mode` is 'build' (fresh, recenter + ground-snap) or
 // 'edit' (use the same anchor/ground as the scan so coords line up).
 // blockId === 0 means DELETE the block at that position.
-function buildBlueprint(blueprint, mode, scan) {
+function buildBlueprint(blueprint, mode, scan, doorList) {
   let ax, az, groundLevel;
+  let cX = 0, cZ = 7;
 
   if (mode === 'edit' && scan) {
     // Reuse the scan's frame exactly so edits align with existing blocks.
@@ -683,8 +693,8 @@ function buildBlueprint(blueprint, mode, scan) {
       if (b.z < minBZ) minBZ = b.z;
       if (b.z > maxBZ) maxBZ = b.z;
     }
-    const cX = isFinite(minBX) ? Math.round((minBX + maxBX) / 2) : 0;
-    const cZ = isFinite(minBZ) ? Math.round((minBZ + maxBZ) / 2) : 7;
+    cX = isFinite(minBX) ? Math.round((minBX + maxBX) / 2) : 0;
+    cZ = isFinite(minBZ) ? Math.round((minBZ + maxBZ) / 2) : 7;
 
     const scanTop = Math.round(player.position.y) + 8;
     let g = Infinity;
@@ -733,6 +743,19 @@ function buildBlueprint(blueprint, mode, scan) {
   lastBuild = record;
   lastAnchor = { x: ax, z: az };
   lastGroundLevel = groundLevel;
+
+  // Place any doors using the SAME coordinate transform as the blocks.
+  if (doorList && doorList.length) {
+    const zOff = (mode === 'edit') ? 7 : 0;
+    for (const d of doorList) {
+      const wx = ax + (d.x - cX);
+      const wy = groundLevel + d.y;
+      const wz = az + ((d.z - cZ) - zOff);
+      if (wy < 1) continue;
+      placeDoor(wx, wy, wz, d.facing || 'south', 'left', true);
+    }
+  }
+
   console.log(`${mode === 'edit' ? 'Edited' : 'Built'} ${record.length} blocks at (${ax}, ${az}), ground ${groundLevel}`);
 }
 
@@ -844,10 +867,11 @@ async function runBuild() {
     if (data.error) {
       buildStatus.textContent = 'Error';
       console.error('Builder error:', data);
-    } else if (data.blocks && data.blocks.length) {
-      buildBlueprint(data.blocks, isEdit ? 'edit' : 'build', scan);
+    } else if ((data.blocks && data.blocks.length) || (data.doors && data.doors.length)) {
+      buildBlueprint(data.blocks || [], isEdit ? 'edit' : 'build', scan, data.doors || []);
       const verb = isEdit ? 'Edited' : 'Built';
-      buildStatus.textContent = `${verb} ${data.blocks.length}!`;
+      const n = (data.blocks ? data.blocks.length : 0) + (data.doors ? data.doors.length : 0);
+      buildStatus.textContent = `${verb} ${n}!`;
       setTimeout(closeBuilder, 1000);
     } else {
       buildStatus.textContent = 'Nothing built';
