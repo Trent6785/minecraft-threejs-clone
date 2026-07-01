@@ -590,11 +590,6 @@ function setupHostButton() {
 const settingsGear = document.getElementById('settings-gear');
 const settingsPanel = document.getElementById('settings-panel');
 
-// Show the gear once the player starts playing.
-player.controls.addEventListener('lock', () => {
-  settingsGear.style.display = 'block';
-});
-
 settingsGear.addEventListener('click', () => {
   const open = settingsPanel.style.display === 'block';
   settingsPanel.style.display = open ? 'none' : 'block';
