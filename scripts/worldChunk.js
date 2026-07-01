@@ -488,10 +488,12 @@ export class WorldChunk extends THREE.Group {
       color: 0x9090e0,
       transparent: true,
       opacity: 0.5,
-      side: THREE.DoubleSide
+      side: THREE.DoubleSide,
+      depthWrite: false   // let solid blocks properly occlude the water plane
     });
 
     const waterMesh = new THREE.Mesh(new THREE.PlaneGeometry(), material);
+    waterMesh.renderOrder = -1; // draw water before solid blocks so blocks occlude it
     waterMesh.rotateX(-Math.PI / 2.0);
     waterMesh.position.set(
       this.size.width / 2,
