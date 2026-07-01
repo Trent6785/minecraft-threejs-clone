@@ -691,6 +691,10 @@ function openInventory() {
 function closeInventory() {
   inventoryOverlay.style.display = 'none';
   delete inventoryOverlay.dataset.open;
+  // Re-lock the pointer so the player resumes playing immediately.
+  if (!player.controls.isLocked) {
+    try { player.controls.lock(); } catch (e) {}
+  }
 }
 
 // Toggle inventory with E. Only in-game (never while a full-screen menu is up).

@@ -106,6 +106,14 @@ export class Player {
   }
 
   onCameraUnlock() {
+    // Don't show the "press any key" overlay if we unlocked only to interact
+    // with the inventory or settings panel (those are intentional in-game UIs).
+    const inv = document.getElementById('inventory-overlay');
+    const settings = document.getElementById('settings-panel');
+    const invOpen = inv && getComputedStyle(inv).display !== 'none';
+    const settingsOpen = settings && getComputedStyle(settings).display !== 'none';
+    if (invOpen || settingsOpen) return;
+
     if (!this.debugCamera) {
       document.getElementById('overlay').style.visibility = 'visible';
     }
