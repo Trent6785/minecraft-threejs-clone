@@ -71,6 +71,10 @@ export class World extends THREE.Group {
     this.seed = this.params.seed;
 
     document.addEventListener('keydown', (ev) => {
+      const el = document.activeElement;
+      if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT')) {
+        return;
+      }
       switch (ev.code) {
         case 'KeyK':
           this.save();

@@ -252,6 +252,12 @@ export class Player {
    * @param {KeyboardEvent} event 
    */
   onKeyDown(event) {
+    // Ignore keystrokes while the user is typing in a text input (name box,
+    // AI build box, etc.) — don't start the game or trigger movement.
+    const el = document.activeElement;
+    if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT')) {
+      return;
+    }
     if (!this.controls.isLocked) {
       this.debugCamera = false;
       this.controls.lock();
@@ -333,6 +339,10 @@ export class Player {
    * @param {KeyboardEvent} event 
    */
   onKeyUp(event) {
+    const el = document.activeElement;
+    if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT')) {
+      return;
+    }
     switch (event.code) {
       case 'KeyW':
         this.input.z = 0;
