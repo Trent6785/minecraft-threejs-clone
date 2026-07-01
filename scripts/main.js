@@ -869,7 +869,12 @@ async function runBuild() {
     });
     const data = await res.json();
     if (data.error) {
-      buildStatus.textContent = 'Error';
+      // A 502/503 or "overloaded/unavailable" means Gemini is under heavy load,
+      // not a real failure — show a friendly message instead of "Error".
+      const detail = (data.detail || '') + ' ' + (data.error || '');
+      const highDemand = res.status === 502 || res.status === 503 ||
+        /overload|unavailable|503|429|rate/i.test(detail);
+      buildStatus.textContent = highDemand ? 'High demand — try again' : 'Error';
       console.error('Builder error:', data);
     } else if ((data.blocks && data.blocks.length) || (data.doors && data.doors.length)) {
       buildBlueprint(data.blocks || [], isEdit ? 'edit' : 'build', scan, data.doors || []);
@@ -881,7 +886,7 @@ async function runBuild() {
       buildStatus.textContent = 'Nothing built';
     }
   } catch (err) {
-    buildStatus.textContent = 'Network error';
+    buildStatus.textContent = 'High demand — try again';
     console.error(err);
   } finally {
     // Always stop the dot animation once the build finishes or errors.
